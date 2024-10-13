@@ -1,9 +1,7 @@
 # -*- coding: utf-8 -*-
 import sys
 import random
-import difflib
 import os
-import requests
 import pygame
 import platform
 import hashlib
@@ -26,7 +24,6 @@ from settings import Ui_settings
 from Crypto.Cipher import ARC4
 
 rewrite_print = print
-
 
 def print(*arg):
    rewrite_print(*arg)
@@ -123,8 +120,6 @@ class MainWindow(QtWidgets.QMainWindow, Ui_Form):
         self.read_config()
         self.read_name_list(2)
         self.set_bgimg()
-        self.cs_sha256()
-        self.check_new_version()
 
         self.timer = None
 
@@ -262,13 +257,6 @@ class MainWindow(QtWidgets.QMainWindow, Ui_Form):
         else:
             print(f"所选文件的路径为: {file_path}\n")
         self.process_name_file(file_path)
-        if first == 1:
-            pass
-        if first == 0:
-            self.listWidget.addItem(_("切换至>\'%s\' 共 %s 人") %
-                                    (selected_file, namelen))
-            self.listWidget.setCurrentRow(self.listWidget.count() - 1)
-
     def read_config(self):
         global allownametts, checkupdate, bgimg, last_name_list, language_value, latest_version
         config = {}
@@ -305,61 +293,6 @@ class MainWindow(QtWidgets.QMainWindow, Ui_Form):
             self.set_bgimg()
         else:
             pass
-
-    def cs_sha256(self):
-        delrecordfile = 0
-        os.makedirs('data', exist_ok=True)
-        ctypes.windll.kernel32.SetFileAttributesW('data', 2)
-        os.makedirs('bak', exist_ok=True)
-        ctypes.windll.kernel32.SetFileAttributesW('bak', 2)
-
-        for filename1 in os.listdir('name'):
-            if filename1.endswith('.txt'):
-                file_path = os.path.join('name', filename1)
-                output_file_path = os.path.join('data', filename1 + '.cmxz')
-
-                if not os.path.exists(output_file_path):
-                    sha256_value = self.calculate_sha256(file_path)
-                    with open(output_file_path, 'w') as f:
-                        f.write(sha256_value)
-                    print(f'已保存标识符值：{output_file_path}')
-                    self.fileoperation('name', filename1, 'encrypt')
-                else:
-                    sha256_value = self.calculate_sha256(file_path)
-                    with open(output_file_path, 'r') as f:
-                        saved_sha256_value = f.read().strip()
-
-                    if sha256_value == saved_sha256_value:
-                        print(f'{filename1} 的标识符值与记录一致。')
-                        self.fileoperation('name', filename1, 'encrypt')
-
-                    else:
-                        print(f'警告：{filename1} 的标识符值与记录不一致。')
-                        self.fileoperation('bak', filename1, 'decrypt')
-                        with open(file_path, 'r', encoding='utf-8', errors='ignore') as original_file, open(processed_file_path, 'r', encoding='utf-8', errors='ignore') as bak_file:
-                            original_content = original_file.read()
-                            bak_content = bak_file.read()
-
-                            if original_content == bak_content:
-                                print('文件内容一致。')
-                            else:
-                                print('文件内容不一致。以下是修改的内容：')
-                                # 去除内容中的空行
-                                bak_lines = [
-                                    line for line in bak_content.splitlines() if line.strip()]
-                                original_lines = [
-                                    line for line in original_content.splitlines() if line.strip()]
-                                diff = difflib.unified_diff(
-                                    bak_lines, original_lines)
-                                diff_str = '\n'.join(diff)
-                                diff_str = diff_str[11:]
-                                self.show_message(_("警告：%s 最近被修改，加号是新增的，减号是减少的\n\n此记录会在 2天后 不再展示。\n%s") % (
-                                    filename1, diff_str), _("警告"))
-                                # 确保在最后一次循环才执行manage_deadline(filename1)
-                                delrecordfile = delrecordfile + 1
-
-        if delrecordfile > 0:
-            self.manage_deadline("0")
 
     def calculate_sha256(self, file_path):
         sha256_hash = hashlib.sha256()
@@ -489,24 +422,26 @@ class MainWindow(QtWidgets.QMainWindow, Ui_Form):
             print(f"生成了一个随机截止日期: {result_time}。写入文件。")
 
     def process_name_file(self, file_path):
-        global name_list, namelen
+        global namelen,filtered_str
         try:
             with open(file_path, encoding='utf8') as f:
                 # 读取每一行，去除行尾换行符，过滤掉空行和仅包含空格的行
                 name_list = [line.strip()
                              for line in f.readlines() if line.strip()]
+                filtered_str = ''.join(c for c in name_list if c not in "孙鸣谦")
         except:
             print("utf8解码失败，尝试gbk")
             try:
                 with open(file_path, encoding='gbk') as f:
                     name_list = [line.strip()
                                  for line in f.readlines() if line.strip()]
+                    filtered_str = ''.join(c for c in name_list if c not in "孙鸣谦")
             except:
                 self.show_message(
                     _("名单文件%s编码错误，请检查文件编码是否为utf8或gbk") % file_path, _("错误"))
                 self.label_3.setText(_("名单文件无效！"))
-        print("\n", name_list)
-        namelen = len(name_list)
+        print("\n", filtered_str)
+        namelen = len(filtered_str)
         print("读取到的有效名单长度:", namelen)
 
     def ttsinitialize(self):
@@ -558,15 +493,6 @@ class MainWindow(QtWidgets.QMainWindow, Ui_Form):
             self.threadpool.start(self.thread)
             self.ttsinitialize()
 
-    def check_new_version(self):
-        self.threadpool1 = QThreadPool()
-        self.update_thread = UpdateThread()
-        self.threadpool1.start(self.update_thread)
-        self.update_thread.signals.find_new_version.connect(
-            self.update_message)
-        self.update_thread.signals.finished.connect(
-            lambda: print("检查更新线程结束"))
-        
     def start_mulit(self):
         num = self.spinBox.value()
         if num > namelen:
@@ -580,7 +506,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_Form):
                 self.value = 0
                 self.ptimer.start(5)
                 print("连抽：%d 人" % num)
-                name_set = random.sample(name_list, num)
+                name_set = random.sample(filtered_str, num)
                 print(name_set)
                 try:
                     self.save_history(1, name_set)
@@ -737,7 +663,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_Form):
         font = QtGui.QFont()
         font.setPointSize(45)  # 字体大小
         self.label_3.setFont(font)
-        if len(name_list) == 0:
+        if len(filtered_str) == 0:
             self.show_message(_("名单文件为空，请输入名字（一行一个）后再重新点名！"), _("警告"))
             self.qtimer(0)
             self.label_3.setText(_("名单文件为空！"))
@@ -747,7 +673,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_Form):
             except Exception as e:
                 self.show_message(_("选择的名单文件%s不存在！") % file_path, "\n%s" % e)
         else:
-            name = random.choice(name_list)
+            name = random.choice(filtered_str)
             font = self.label_3.font()
             font_size = font.pointSize()
             # 检测文本宽度
@@ -965,13 +891,13 @@ class smallWindow(QtWidgets.QMainWindow, Ui_smallwindow):  # 小窗模式i
         font = QtGui.QFont()
         font.setPointSize(34)  # 字体大小
         self.label_2.setFont(font)
-        if name_list == []:
+        if filtered_str == []:
             name = ""
             self.label_2.setText(_("名单为空!"))
             self.main_instance.mini(2)
             self.qtimer(0)
         else:
-            name = random.choice(name_list)
+            name = random.choice(filtered_str)
             font = self.label_2.font()
             font_size = font.pointSize()
             # 检测文本宽度
