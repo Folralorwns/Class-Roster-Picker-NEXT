@@ -98,7 +98,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_Form):
         self.m_flag = False
         self.setMinimumSize(QtCore.QSize(700, 409))
         self.setWindowTitle(QCoreApplication.translate(
-            "MainWindow", _("沉梦课堂点名器 %s") % dmversion))
+            "MainWindow", _("课堂点名器 %s") % dmversion))
         self.pushButton_2.setText(_(" 开始"))
         self.pushButton_5.setText(_(" 小窗模式"))
         font = QtGui.QFont()
@@ -263,8 +263,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_Form):
             print(f"所选文件的路径为: {file_path}\n")
         self.process_name_file(file_path)
         if first == 1:
-            self.listWidget.addItem(_("\'%s'，共 %s 人") %
-                                    (selected_file, namelen))
+            pass
         if first == 0:
             self.listWidget.addItem(_("切换至>\'%s\' 共 %s 人") %
                                     (selected_file, namelen))
@@ -906,51 +905,6 @@ class UpdateThread(QRunnable):
     def __init__(self):
         super().__init__()
         self.signals = WorkerSignals()
-
-    def run(self):
-        global newversion, checkupdate, latest_version
-        # ptvsd.debug_this_thread()  # 在此线程启动断点调试
-        headers = {
-            'User-Agent': 'CMXZ-CRP_%s,%s,%s,%s,%s%s_%s' % (dmversion, allownametts, bgimg, language_value, platform.system(), platform.release(), platform.machine() )
-        }
-        updatecheck = "https://cmxz.top/programs/dm/check.php"
-        # try:
-        #     check_mode = requests.get(
-        #         updatecheck + "?mode", timeout=5, headers=headers)
-        #     if int(check_mode.text) == 1:
-        #         print("检测到强制更新版本，这意味着当前版本有严重bug，请更新至最新版本！")
-        #         checkupdate = 2
-        #         latest_version = 0
-        # except:
-        #     pass
-        if checkupdate == 2:
-            try:
-                page = requests.get(updatecheck, timeout=5, headers=headers)
-                newversion = float(page.text)
-                print("云端版本号为:", newversion)
-                findnewversion = _("检测到新版本！")
-                if newversion > dmversion and float(latest_version) < newversion:
-                    print("检测到新版本:", newversion,
-                          "当前版本为:", dmversion)
-                    new_version_detail = requests.get(
-                        updatecheck + "?detail", timeout=5, headers=headers)
-                    new_version_detail = new_version_detail.text
-                    self.signals.find_new_version.emit(_("云端最新版本为%s，要现在下载新版本吗？<br>您也可以稍后访问沉梦小站官网获取最新版本。<br><br>%s") % (
-                        newversion, new_version_detail), findnewversion)
-                else:
-                    if float(latest_version) == newversion:
-                        print("\n已忽略%s版本更新,当前版本：%s" % (newversion, dmversion))
-            except:
-                print("网络异常,无法检测更新")
-                noconnect = _("网络连接异常，检查更新失败")
-                self.signals.update_list.emit(1, noconnect)
-
-        elif checkupdate == 1:
-            print("检查更新已关闭")
-
-        self.signals.finished.emit()
-
-
 class smallWindow(QtWidgets.QMainWindow, Ui_smallwindow):  # 小窗模式i
     def __init__(self, main_instance=None):
         super().__init__()
