@@ -566,26 +566,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_Form):
             self.update_message)
         self.update_thread.signals.finished.connect(
             lambda: print("检查更新线程结束"))
-
-    def update_message(self, message, title):  # 更新弹窗
-        msgBox = QMessageBox()
-        msgBox.setWindowTitle(title)
-        msgBox.setText(message)
-        msgBox.setWindowIcon(QtGui.QIcon(':/icons/picker.ico'))
-        okButton = msgBox.addButton("立刻前往", QMessageBox.AcceptRole)
-        noButton = msgBox.addButton("下次一定", QMessageBox.RejectRole)
-        ignoreButton = msgBox.addButton("忽略本次更新", QMessageBox.RejectRole)
-        msgBox.exec_()
-        clickedButton = msgBox.clickedButton()
-        if clickedButton == okButton:
-            web.open_new("https://cmxz.top/ktdmq")
-            self.update_list(1, title)
-        elif clickedButton == ignoreButton:
-            self.update_list(1, title)
-            self.update_config("latest_version", newversion)
-        else:
-            self.update_list(1, title)
-
+        
     def start_mulit(self):
         num = self.spinBox.value()
         if num > namelen:
